@@ -17,12 +17,7 @@ class Datepicker extends Component {
   static propTypes = {
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     onChange: PropTypes.func.isRequired,
-    render: PropTypes.func.isRequired,
-    orientation: PropTypes.string
-  };
-
-  static defaultProps = {
-    orientation: "horizontal"
+    render: PropTypes.func.isRequired
   };
 
   constructor(props) {
@@ -40,6 +35,13 @@ class Datepicker extends Component {
 
   componentDidMount() {
     this.highlightDate(this.state.highlightedDate);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    const { value } = this.props;
+    if (nextProps.value && !this.isSameDay(value, nextProps.value)) {
+      this.selectDate(nextProps.value);
+    }
   }
 
   getDaysInMonth(month, year) {
@@ -111,6 +113,14 @@ class Datepicker extends Component {
 
         return acc;
       }, []);
+  }
+
+  isSameDay(date1, date2) {
+    if (!date1 || !date2) {
+      return false;
+    }
+
+    return date1.toDateString() === date2.toDateString();
   }
 
   isPreviousMonthFromHighlighted(date) {
@@ -185,15 +195,19 @@ class Datepicker extends Component {
   }
 
   selectDate(date) {
+    const { selectedDate } = this.state;
+
     this.setState(
       ({ selectedDate }) => ({
         selectedDate: date
       }),
       () => {
-        const { selectedDate } = this.state;
         this.highlightDate(date);
 
-        if (date.toDateString() !== selectedDate.toDateString()) {
+        if (
+          !selectedDate ||
+          (selectedDate && !this.isSameDay(date, selectedDate))
+        ) {
           this.props.onChange && this.props.onChange(date);
         }
       }

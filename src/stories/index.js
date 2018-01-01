@@ -1,9 +1,10 @@
-import React from "react";
+import React, { Component } from "react";
 
 import { storiesOf } from "@storybook/react";
 import { action } from "@storybook/addon-actions";
 import { linkTo } from "@storybook/addon-links";
 import styled from "styled-components";
+import format from "date-fns/format";
 
 import Datepicker from "../components/Datepicker";
 
@@ -55,11 +56,12 @@ const DayCell = styled.p`
   ${props => props.highlighted && !props.selected && "background: #f4f4f4;"};
 `;
 
-storiesOf("Datepicker with render prop", module).add("default", () => (
+const stories = storiesOf("Datepicker with render prop", module);
+
+stories.add("default", () => (
   <Datepicker
     value={new Date()}
     onChange={action("onChange")}
-    continuous
     render={({
       selectedDate,
       highlightedDate,
@@ -106,3 +108,97 @@ storiesOf("Datepicker with render prop", module).add("default", () => (
     )}
   />
 ));
+
+class DatePickerWithInput extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      date: undefined,
+      inputValue: ""
+    };
+  }
+
+  handleInputChange = event => {
+    const dateRegEx = /^\d{2}\/\d{2}\/\d{4}$/;
+    const { value } = event.target;
+
+    const date = new Date(value);
+    if (dateRegEx.test(value) && date.toDateString() !== "Invalid Date") {
+      this.setState({
+        date: new Date(value),
+        inputValue: format(value, "MM/DD/YYYY")
+      });
+    } else {
+      this.setState({ inputValue: value });
+    }
+  };
+
+  handleDatepickerChange = value => {
+    this.setState({
+      date: value,
+      inputValue: format(value, "MM/DD/YYYY")
+    });
+  };
+
+  render() {
+    return (
+      <div>
+        <input
+          type="text"
+          onChange={this.handleInputChange}
+          value={this.state.inputValue}
+        />
+        <Datepicker
+          value={this.state.date}
+          onChange={this.handleDatepickerChange}
+          render={({
+            selectedDate,
+            highlightedDate,
+            currentMonthWeeks,
+            previousMonthWeeks,
+            nextMonthWeeks,
+            getDayProps
+          }) => (
+            <MonthView>
+              <MonthTitle>
+                {monthStrings[highlightedDate.getMonth()]} -{" "}
+                {highlightedDate.getFullYear()}
+              </MonthTitle>
+              <WeekRow>
+                {weekDaysStrings.map((day, index) => (
+                  <DayCell key={index}>{day}</DayCell>
+                ))}
+              </WeekRow>
+              {currentMonthWeeks.map((week, index) => (
+                <WeekRow key={index}>
+                  {week.map(day => (
+                    <DayCell
+                      key={day.toJSON()}
+                      grayed={
+                        day.getMonth() !== highlightedDate.getMonth() ||
+                        day.getFullYear() !== highlightedDate.getFullYear()
+                      }
+                      selected={
+                        selectedDate &&
+                        day.toDateString() === selectedDate.toDateString()
+                      }
+                      highlighted={
+                        highlightedDate &&
+                        day.toDateString() === highlightedDate.toDateString()
+                      }
+                      {...getDayProps(day)}
+                    >
+                      {day.getDate()}
+                    </DayCell>
+                  ))}
+                </WeekRow>
+              ))}
+            </MonthView>
+          )}
+        />
+      </div>
+    );
+  }
+}
+
+stories.add("with input", () => <DatePickerWithInput />);
